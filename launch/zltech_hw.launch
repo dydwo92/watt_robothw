@@ -1,0 +1,21 @@
+<launch>
+  <!-- Global Parameters setting -->
+  <rosparam file="$(find watt_robothw)/config/system.yaml" command="load" />
+
+  <!-- Model and state publisher -->
+  <node name="zltech_hw" pkg="watt_robothw" type="zltech_hw" output="screen">
+  	<rosparam file="$(find watt_robothw)/config/zltech/hardware.yaml" command="load"/>
+  </node>
+
+  <group>
+    <rosparam file="$(find watt_robothw)/config/zltech/controllers.yaml" command="load" />
+    <node name="controller_spawner"
+        pkg="controller_manager"
+        type="spawner"
+        respawn="true"
+        output="screen"
+        args="joint_state_controller base_controller" >
+    </node>
+  </group>
+
+</launch>

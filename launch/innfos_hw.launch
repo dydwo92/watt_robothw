@@ -1,0 +1,42 @@
+<launch>
+
+  <arg name="run_demo_traj" default="false"/>
+
+  <!-- Global Parameters setting -->
+  <rosparam file="$(find watt_robothw)/config/system.yaml" command="load" />
+  
+  <arg name="model" default="$(find watt_robothw)/urdf/example_arm.urdf.xacro"/>
+  <param name="robot_description" command="$(find xacro)/xacro.py $(arg model)" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  
+  <!-- Model and state publisher -->
+  <node name="innfos_hw" pkg="watt_robothw" type="innfos_hw" output="screen">
+  	<rosparam file="$(find watt_robothw)/config/innfos/hardware.yaml" command="load"/>
+  </node>
+
+  <!-- true : load the trajectory controllers -->
+  <group if="$(arg run_demo_traj)">
+    <rosparam file="$(find watt_robothw)/config/innfos/traj_controllers.yaml" command="load"/>
+    <node name="traj_controller_spawner"
+      pkg="controller_manager"
+      type="controller_manager"
+      respawn="false"
+      output="screen"
+      args="spawn xarm6_traj_controller joint_state_controller" />
+  </group>
+
+  <!-- false : load the position controllers -->
+  <group unless="$(arg run_demo_traj)">
+    <rosparam file="$(find watt_robothw)/config/innfos/position_controllers.yaml" command="load"/>
+    <node name="position_controller_spawner"
+      pkg="controller_manager"
+      type="spawner"
+      respawn="false"
+      output="screen"
+      args="joint1_position_controller joint2_position_controller
+            joint3_position_controller joint4_position_controller
+            joint5_position_controller joint6_position_controller
+            joint_state_controller"/>
+  </group>
+
+</launch>

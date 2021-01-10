@@ -1,0 +1,3 @@
+DOF : 2
+joint_names: ['l_wheel_joint', 'r_wheel_joint']
+joint_ids : [1, 2]
