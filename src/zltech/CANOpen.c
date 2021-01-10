@@ -12,7 +12,7 @@ static CO_BUFFER rxBuffer[CO_BUFLEN];
 
 static uint16_t cobID;
 static uint8_t txData[8];
-volatile uint16_t tx_timeout;
+volatile static uint16_t tx_timeout;
 
 CO_Status CANOpen_sendSync(){
   // Create sync frame

@@ -18,8 +18,8 @@
 #include <ros/ros.h>
 
 int s_can; // socketCAN file descriptor
-extern volatile uint16_t tx_timeout; // read timeout
 
+static int can_finish;
 static pthread_t p_thread[2];
 
 /********************************************************************/
@@ -27,11 +27,10 @@ static pthread_t p_thread[2];
 /********************************************************************/
 void* canopen_checkloop(void* d){
 
-	while(ros::ok()){
+	while(!can_finish){
 		CANOpen_timerLoop();
 		usleep(1000);
 	}
-	tx_timeout = 0;
 
 	pthread_exit(NULL);
 
@@ -46,7 +45,7 @@ void* canopen_rxloop(void* d){
     int rv;
     int nbytes;
 
-	while(ros::ok()){
+	while(!can_finish){
 	    FD_ZERO(&set);
 	    FD_SET(s_can, &set);
 
@@ -61,7 +60,6 @@ void* canopen_rxloop(void* d){
 	        CANOpen_addRxBuffer(frame.can_id, frame.data);
 	    }
 	}
-	tx_timeout = 0;
 
 	pthread_exit(NULL);
 
@@ -73,6 +71,8 @@ bool CAN_init(const char* can_device){
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 	struct can_filter rfilter[1];
+
+	can_finish = 0;
 
 	// [[ 1.Create socket ]]
 	s_can = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -128,6 +128,9 @@ bool CAN_init(const char* can_device){
 }
 
 void CAN_deinit(){
+
+	can_finish = 1;
+
 	int status;
 	pthread_join(p_thread[0], (void **)&status);
 	pthread_join(p_thread[1], (void **)&status);

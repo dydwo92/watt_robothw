@@ -14,7 +14,7 @@
 #include <sys/select.h>
 
 extern int s_can;
-extern volatile uint16_t rx_timeout;
+volatile static uint16_t rx_timeout;
 
 typedef struct INNFOS_BUFFER{
   uint8_t id;

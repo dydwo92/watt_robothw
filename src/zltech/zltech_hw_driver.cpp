@@ -57,6 +57,15 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 	    CANOpen_mappingPDO_int32(&readPDO_[i], &speed_output_[i]);
 	}
 
+    sleep(1);
+	for (i = 0; i < dof_; i++) {
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0006, 1000);
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0007, 1000);
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x000F, 1000);
+	}
+
+    CANOpen_NMT(CO_OP);
+
     joint_cmd_.resize(dof_);
     joint_pos_.resize(dof_, 0);
     joint_vel_.resize(dof_, 0);
@@ -97,10 +106,16 @@ void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
 void ZltechHW::write(const ros::Time& time, const ros::Duration& period){
 
 	int i;
-
 	for(i = 0; i < dof_; i++){
 		speed_input_[i] = (int32_t)(joint_cmd_[i] * 60.0 / (2.0 * M_PI));
 		CANOpen_sendPDO(jnt_ids_[i], 1, &sendPDO_[i]);
 	}
+
+}
+
+void ZltechHW::deinit(){
+
+	int i;
+	for(i = 0; i < dof_; i++) CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0000, 0);
 
 }

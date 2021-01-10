@@ -50,6 +50,7 @@ int main(int argc, char**argv)
 	}
 	spinner.stop();
 
+	zltech_hw.deinit();
 	CAN_deinit();
 
 	return 0;
