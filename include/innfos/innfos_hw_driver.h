@@ -2,6 +2,8 @@
 #define WATTROBOTHW_INCLUDE_INNFOS_HW_DRIVER_H_
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
+
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
@@ -20,6 +22,9 @@ public :
 	void write(const ros::Time& time, const ros::Duration& period);
 
 	void deinit();
+
+private :
+	void callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active);
 
 private :
 
@@ -42,6 +47,9 @@ private :
 
 	hardware_interface::JointStateInterface    js_interface_;
 	hardware_interface::PositionJointInterface pj_interface_;
+
+	ros::Subscriber sub_e_stop_;
+	bool e_stop_active_;
 };
 
 #endif

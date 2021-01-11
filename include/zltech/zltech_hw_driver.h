@@ -2,6 +2,8 @@
 #define WATT_ROBOTHW_INCLUDE_ZLTECH_ZLTECH_HW_DRIVER_H_
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
+
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
@@ -22,6 +24,9 @@ public :
 	void deinit();
 
 private :
+	void callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active);
+
+private :
 
 	// Hardware parameters
 	int dof_;
@@ -37,6 +42,9 @@ private :
     std::vector<int32_t> position_output_;
     std::vector<uint16_t> state_output_;
 
+    std::vector<double> pos_coeff_;
+    std::vector<double> vel_coeff_;
+
     hardware_interface::JointStateInterface jnt_state_interface_;
     hardware_interface::PositionJointInterface jnt_pos_interface_;
     hardware_interface::VelocityJointInterface jnt_vel_interface_;
@@ -46,6 +54,9 @@ private :
     std::vector<double> joint_pos_;
     std::vector<double> joint_vel_;
     std::vector<double> joint_eff_;
+
+    ros::Subscriber sub_e_stop_;
+    bool e_stop_active_;
 
 };
 

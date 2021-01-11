@@ -1,3 +1,5 @@
 DOF : 2
 joint_names: ['l_wheel_joint', 'r_wheel_joint']
 joint_ids : [1, 2]
+vel_coeff : [1.0, -1.0]
+pos_coeff : [1.0, -1.0]

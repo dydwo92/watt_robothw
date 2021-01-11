@@ -24,6 +24,16 @@ bool InnfosHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
 		return false;
 	}
 
+	// Init subscriber
+	std::string estop_topic;
+	if (!root_nh.getParam("estop_topic", estop_topic)) {
+		ROS_ERROR("estop_topic name error!");
+		return false;
+	}
+
+	e_stop_active_ = false;
+	sub_e_stop_ = root_nh.subscribe(estop_topic, 1, &InnfosHW::callback_activate_e_stop, this);
+
 	position_cmd_.resize(dof_);
 	position_cmd_float_.resize(dof_);
 	position_fdb_.resize(dof_);
@@ -55,6 +65,10 @@ bool InnfosHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
 	return true;
 }
 
+void InnfosHW::callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active){
+	e_stop_active_ = e_stop_active->data;
+}
+
 void InnfosHW::read(const ros::Time& time, const ros::Duration& period){
 	// basically the above feedback callback functions have done the job
 	int i;
@@ -67,6 +81,9 @@ void InnfosHW::read(const ros::Time& time, const ros::Duration& period){
 
 void InnfosHW::write(const ros::Time& time, const ros::Duration& period){
 	int i;
+
+	if(e_stop_active_) return;
+
 	for (i = 0; i < NUM_MOTOR; i++) {
 		INNFOS_posCmd(&innfos_reply_.at(i), jnt_ids_.at(i), (float)position_cmd_[i], 200);
 	}

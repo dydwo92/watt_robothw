@@ -24,6 +24,16 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 		return false;
 	}
 
+	// Init subscriber
+	std::string estop_topic;
+	if (!root_nh.getParam("estop_topic", estop_topic)) {
+		ROS_ERROR("estop_topic name error!");
+		return false;
+	}
+
+	e_stop_active_ = false;
+	sub_e_stop_ = root_nh.subscribe(estop_topic, 1, &ZltechHW::callback_activate_e_stop, this);
+
 	// Init CANOpen
 	sendPDO_.resize(dof_);
 	readPDO1_.resize(dof_);
@@ -84,6 +94,17 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
     joint_vel_.resize(dof_, 0);
     joint_eff_.resize(dof_, 0);
 
+	pos_coeff_.resize(dof_);
+	vel_coeff_.resize(dof_);
+
+	robot_hw_nh.getParam("pos_coeff", pos_coeff_);
+	robot_hw_nh.getParam("vel_coeff", vel_coeff_);
+
+	if (pos_coeff_.size() != dof_ || vel_coeff_.size() != dof_) {
+		ROS_ERROR("Coefficient array size error!");
+		return false;
+	}
+
 	for (i = 0; i < dof_; i++) {
 		// Create joint state interface for all joints
 		jnt_state_interface_.registerHandle(hardware_interface::JointStateHandle(jnt_names_[i], &joint_pos_[i], &joint_vel_[i], &joint_eff_[i]));
@@ -98,6 +119,10 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 	ROS_INFO("[%s] initialized successfully.", ros::this_node::getName().c_str());
 
 	return true;
+}
+
+void ZltechHW::callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active){
+	e_stop_active_ = e_stop_active->data;
 }
 
 void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
@@ -115,6 +140,9 @@ void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
     	joint_eff_[i] = 0;
     	joint_vel_[i] = speed_output_[i] / 10.0 / 60.0 * 2.0 * M_PI;
     	joint_pos_[i] = position_output_[i] / 4096.0 * 2.0 * M_PI;
+
+    	joint_vel_[i] *= vel_coeff_[i];
+    	joint_pos_[i] *= pos_coeff_[i];
     }
 
 }
@@ -123,7 +151,13 @@ void ZltechHW::write(const ros::Time& time, const ros::Duration& period){
 
 	int i;
 	for(i = 0; i < dof_; i++){
-		speed_input_[i] = (int32_t)(joint_cmd_[i] * 60.0 / (2.0 * M_PI));
+		if (e_stop_active_)
+			speed_input_[i] = 0;
+		else {
+			speed_input_[i] = (int32_t) (joint_cmd_[i] * 60.0 / (2.0 * M_PI));
+			speed_input_[i] *= vel_coeff_[i];
+		}
+
 		CANOpen_sendPDO(jnt_ids_[i], 1, &sendPDO_[i]);
 	}
 
