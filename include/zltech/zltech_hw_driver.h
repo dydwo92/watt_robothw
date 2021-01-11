@@ -29,11 +29,13 @@ private :
 	std::vector<int> jnt_ids_;
 
     std::vector<CO_PDOStruct> sendPDO_;
-    std::vector<CO_PDOStruct> readPDO_;
+    std::vector<CO_PDOStruct> readPDO1_;
+    std::vector<CO_PDOStruct> readPDO2_;
 
     std::vector<int32_t> speed_input_;
     std::vector<int32_t> speed_output_;
     std::vector<int32_t> position_output_;
+    std::vector<uint16_t> state_output_;
 
     hardware_interface::JointStateInterface jnt_state_interface_;
     hardware_interface::PositionJointInterface jnt_pos_interface_;

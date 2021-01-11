@@ -1,3 +1,3 @@
 control_rate : 50
-innfos_can_device : "vcan0"
-zltech_can_device : "vcan0"
+innfos_can_device : "can0"
+zltech_can_device : "can0"

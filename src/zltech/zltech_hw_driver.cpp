@@ -26,7 +26,8 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 
 	// Init CANOpen
 	sendPDO_.resize(dof_);
-	readPDO_.resize(dof_);
+	readPDO1_.resize(dof_);
+	readPDO2_.resize(dof_);
 	speed_input_.resize(dof_);
 	speed_output_.resize(dof_);
 	position_output_.resize(dof_);
@@ -52,9 +53,21 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 2, 1000);
 	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1800, 0x01, 0x180 | jnt_ids_[i], 1000);
 
-	    CANOpen_mappingPDO_init(&readPDO_[i]);
-	    CANOpen_mappingPDO_int32(&readPDO_[i], &position_output_[i]);
-	    CANOpen_mappingPDO_int32(&readPDO_[i], &speed_output_[i]);
+	    CANOpen_mappingPDO_init(&readPDO1_[i]);
+	    CANOpen_mappingPDO_int32(&readPDO1_[i], &position_output_[i]);
+	    CANOpen_mappingPDO_int32(&readPDO1_[i], &speed_output_[i]);
+
+		// TPDO2 Setting
+		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x80000180 | jnt_ids_[i], 1000);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1801, 0x02, 0x01, 1000);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A01, 0x00, 0, 1000);
+		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A01, 0x01, 0x603F0010, 1000);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 1, 1000);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x180 | jnt_ids_[i], 1000);
+
+		CANOpen_mappingPDO_init(&readPDO2_[i]);
+		CANOpen_mappingPDO_uint16(&readPDO2_[i], &state_output_[i]);
+
 	}
 
     sleep(1);
@@ -93,7 +106,10 @@ void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
 
 	// Communicate
     CANOpen_sendSync();
-    for(i = 0; i < dof_; i++) CANOpen_readPDO(jnt_ids_[i], 1, &readPDO_[i], 10);
+    for(i = 0; i < dof_; i++){
+		CANOpen_readPDO(jnt_ids_[i], 1, &readPDO1_[i], 10);
+		CANOpen_readPDO(jnt_ids_[i], 2, &readPDO2_[i], 10);
+	}
 
     for(i = 0; i < dof_; i++){
     	joint_eff_[i] = 0;
