@@ -180,9 +180,61 @@ bool INNFOS_parseResponse(INNFOS_REPLY *reply, uint8_t id){
 ////////////////////////////////////////////////////////////////////
 // GYEMS functions
 ////////////////////////////////////////////////////////////////////
-void INNFOS_Init(uint8_t id){
+void INNFOS_Init(uint8_t id, float accel, float vel){
+
+	float temp;
+	int32_t temp32;
+
+
 	innfos_data[0] = 0x2A; innfos_data[1] = 0x01; INNFOS_sendFrame(id, innfos_data, 2); // SCA enable
+	usleep(500000);
+
+	// Speed
+	temp = vel * IQ24;
+	temp /= M_PI2;
+	temp *= 36;
+	temp32 = (int32_t)temp;
+
+	innfos_data[0] = 0x1F;
+	innfos_data[1] = (uint8_t)(temp32 >> 24);
+	innfos_data[2] = (uint8_t)(temp32 >> 16);
+	innfos_data[3] = (uint8_t)(temp32 >> 8);
+	innfos_data[4] = (uint8_t)temp32;
+	INNFOS_sendFrame(id, innfos_data, 5);
+
 	sleep(1);
+
+	// Acceleration
+	temp = accel * IQ24;
+	temp /= M_PI2;
+	temp *= 36;
+	temp32 = (int32_t)temp;
+
+	innfos_data[0] = 0x20;
+	innfos_data[1] = (uint8_t)(temp32 >> 24);
+	innfos_data[2] = (uint8_t)(temp32 >> 16);
+	innfos_data[3] = (uint8_t)(temp32 >> 8);
+	innfos_data[4] = (uint8_t)temp32;
+	INNFOS_sendFrame(id, innfos_data, 5);
+
+	usleep(100000);
+
+	// Deceleration
+
+	temp = -accel * IQ24;
+	temp /= M_PI2;
+	temp *= 36;
+	temp32 = (int32_t)temp;
+
+	innfos_data[0] = 0x21;
+	innfos_data[1] = (uint8_t)(temp32 >> 24);
+	innfos_data[2] = (uint8_t)(temp32 >> 16);
+	innfos_data[3] = (uint8_t)(temp32 >> 8);
+	innfos_data[4] = (uint8_t)temp32;
+	INNFOS_sendFrame(id, innfos_data, 5);
+
+	usleep(100000);
+
 	innfos_data[0] = 0x07; innfos_data[1] = 0x06; INNFOS_sendFrame(id, innfos_data, 2); // Select usage mode [ position loop ]
 }
 

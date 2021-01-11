@@ -31,10 +31,20 @@ bool InnfosHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
 		return false;
 	}
 
+	std::string eshutdown_topic;
+	if (!root_nh.getParam("eshutdown_topic", eshutdown_topic)) {
+		ROS_ERROR("eshutdown_topic name error!");
+		return false;
+	}
+
 	e_stop_active_ = false;
 	sub_e_stop_ = root_nh.subscribe(estop_topic, 1, &InnfosHW::callback_activate_e_stop, this);
 
+	e_shutdown_active_ = false;
+	sub_e_shutdown_ = root_nh.subscribe(eshutdown_topic, 1, &InnfosHW::callback_activate_e_shutdown, this);
+
 	position_cmd_.resize(dof_);
+	last_position_cmd_.resize(dof_);
 	position_cmd_float_.resize(dof_);
 	position_fdb_.resize(dof_);
 	velocity_cmd_.resize(dof_);
@@ -42,10 +52,20 @@ bool InnfosHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
 	effort_cmd_.resize(dof_);
 	effort_fdb_.resize(dof_);
 
+	max_accel_.resize(dof_);
+	max_vel_.resize(dof_);
+
+	robot_hw_nh.getParam("max_accel", max_accel_);
+	robot_hw_nh.getParam("max_vel", max_vel_);
+	if(max_accel_.size() != dof_ || max_vel_.size() != dof_){
+		ROS_ERROR("parameter array length error!");
+		return false;
+	}
+
 	innfos_reply_.resize(dof_);
 
 	for(i = 0; i < dof_; i++){
-		INNFOS_Init(jnt_ids_.at(i));
+		INNFOS_Init(jnt_ids_.at(i), max_accel_[i], max_vel_[i]);
 	}
 
 	for (i = 0; i < dof_; i++) {
@@ -69,6 +89,19 @@ void InnfosHW::callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_act
 	e_stop_active_ = e_stop_active->data;
 }
 
+void InnfosHW::callback_activate_e_shutdown(const std_msgs::BoolConstPtr& e_shutdown_active){
+
+	int i;
+
+	if(e_shutdown_active_ != e_shutdown_active->data){
+		for(i = 0; i < dof_; i++){
+			if(!e_shutdown_active->data) INNFOS_Init(jnt_ids_.at(i), max_accel_[i], max_vel_[i]);
+			else INNFOS_deInit(jnt_ids_.at(i));
+		}
+		e_shutdown_active_ = e_shutdown_active->data;
+	}
+}
+
 void InnfosHW::read(const ros::Time& time, const ros::Duration& period){
 	// basically the above feedback callback functions have done the job
 	int i;
@@ -82,10 +115,16 @@ void InnfosHW::read(const ros::Time& time, const ros::Duration& period){
 void InnfosHW::write(const ros::Time& time, const ros::Duration& period){
 	int i;
 
-	if(e_stop_active_) return;
+	if(e_shutdown_active_) return;
 
 	for (i = 0; i < NUM_MOTOR; i++) {
-		INNFOS_posCmd(&innfos_reply_.at(i), jnt_ids_.at(i), (float)position_cmd_[i], 200);
+		if(!e_stop_active_){
+			last_position_cmd_[i] = position_fdb_[i];
+			INNFOS_posCmd(&innfos_reply_.at(i), jnt_ids_.at(i), (float)position_cmd_[i], 200);
+		}else{
+			INNFOS_posCmd(&innfos_reply_.at(i), jnt_ids_.at(i), (float)last_position_cmd_[i], 200);
+		}
+
 	}
 }
 

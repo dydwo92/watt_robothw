@@ -33,7 +33,7 @@ typedef struct _INNFOS_REPLY{
 	float Position; // rad
 } INNFOS_REPLY;
 
-extern void INNFOS_Init(uint8_t id);
+extern void INNFOS_Init(uint8_t id, float accel, float vel);
 extern void INNFOS_deInit(uint8_t id);
 extern bool INNFOS_posCmd(INNFOS_REPLY* reply,
 						  uint8_t id,

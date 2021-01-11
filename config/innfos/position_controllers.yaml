@@ -2,7 +2,7 @@
 # Publish all joint states -----------------------------------
 joint_state_controller:
   type: joint_state_controller/JointStateController
-  publish_rate: 20
+  publish_rate: 50
 
 # Position Controllers ---------------------------------------
 joint1_position_controller:

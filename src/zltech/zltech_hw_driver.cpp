@@ -31,8 +31,17 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 		return false;
 	}
 
+	std::string eshutdown_topic;
+	if (!root_nh.getParam("eshutdown_topic", eshutdown_topic)) {
+		ROS_ERROR("eshutdown_topic name error!");
+		return false;
+	}
+
 	e_stop_active_ = false;
 	sub_e_stop_ = root_nh.subscribe(estop_topic, 1, &ZltechHW::callback_activate_e_stop, this);
+
+	e_shutdown_active_ = false;
+	sub_e_shutdown_ = root_nh.subscribe(eshutdown_topic, 1, &ZltechHW::callback_activate_e_shutdown, this);
 
 	// Init CANOpen
 	sendPDO_.resize(dof_);
@@ -42,52 +51,7 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 	speed_output_.resize(dof_);
 	position_output_.resize(dof_);
 
-	for(i = 0; i < dof_; i++){
-	    // RPDO1 Setting
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1400, 0x01, 0x80000200 | jnt_ids_[i], 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1400, 0x02, 0x01, 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1600, 0x00, 0, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1600, 0x01, 0x60FF0020, 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1600, 0x00, 1, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1400, 0x01, 0x200 | jnt_ids_[i], 1000);
-
-	    CANOpen_mappingPDO_init(&sendPDO_[i]);
-	    CANOpen_mappingPDO_int32(&sendPDO_[i], &speed_input_[i]);
-
-	    // TPDO1 Setting
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1800, 0x01, 0x80000180 | jnt_ids_[i], 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1800, 0x02, 0x01, 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 0, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A00, 0x01, 0x60640020, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A00, 0x02, 0x606C0020, 1000);
-	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 2, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1800, 0x01, 0x180 | jnt_ids_[i], 1000);
-
-	    CANOpen_mappingPDO_init(&readPDO1_[i]);
-	    CANOpen_mappingPDO_int32(&readPDO1_[i], &position_output_[i]);
-	    CANOpen_mappingPDO_int32(&readPDO1_[i], &speed_output_[i]);
-
-		// TPDO2 Setting
-		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x80000180 | jnt_ids_[i], 1000);
-		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1801, 0x02, 0x01, 1000);
-		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A01, 0x00, 0, 1000);
-		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A01, 0x01, 0x603F0010, 1000);
-		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 1, 1000);
-	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x180 | jnt_ids_[i], 1000);
-
-		CANOpen_mappingPDO_init(&readPDO2_[i]);
-		CANOpen_mappingPDO_uint16(&readPDO2_[i], &state_output_[i]);
-
-	}
-
-    sleep(1);
-	for (i = 0; i < dof_; i++) {
-		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0006, 1000);
-		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0007, 1000);
-		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x000F, 1000);
-	}
-
-    CANOpen_NMT(CO_OP);
+	activate();
 
     joint_cmd_.resize(dof_);
     joint_pos_.resize(dof_, 0);
@@ -123,13 +87,80 @@ bool ZltechHW::init(ros::NodeHandle& root_nh, ros::NodeHandle &robot_hw_nh){
 	return true;
 }
 
+void ZltechHW::activate(){
+	int i;
+
+	for(i = 0; i < dof_; i++){
+	    // RPDO1 Setting
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1400, 0x01, 0x80000200 | jnt_ids_[i], 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1400, 0x02, 0x01, 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1600, 0x00, 0, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1600, 0x01, 0x60FF0020, 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1600, 0x00, 1, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1400, 0x01, 0x200 | jnt_ids_[i], 100);
+
+	    CANOpen_mappingPDO_init(&sendPDO_[i]);
+	    CANOpen_mappingPDO_int32(&sendPDO_[i], &speed_input_[i]);
+
+	    // TPDO1 Setting
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1800, 0x01, 0x80000180 | jnt_ids_[i], 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1800, 0x02, 0x01, 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 0, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A00, 0x01, 0x60640020, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A00, 0x02, 0x606C0020, 100);
+	    CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 2, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1800, 0x01, 0x180 | jnt_ids_[i], 100);
+
+	    CANOpen_mappingPDO_init(&readPDO1_[i]);
+	    CANOpen_mappingPDO_int32(&readPDO1_[i], &position_output_[i]);
+	    CANOpen_mappingPDO_int32(&readPDO1_[i], &speed_output_[i]);
+
+		// TPDO2 Setting
+		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x80000180 | jnt_ids_[i], 100);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1801, 0x02, 0x01, 100);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A01, 0x00, 0, 100);
+		CANOpen_writeOD_uint32(jnt_ids_[i], 0x1A01, 0x01, 0x603F0010, 100);
+		CANOpen_writeOD_uint8(jnt_ids_[i], 0x1A00, 0x00, 1, 100);
+	    CANOpen_writeOD_uint32(jnt_ids_[i], 0x1801, 0x01, 0x180 | jnt_ids_[i], 100);
+
+		CANOpen_mappingPDO_init(&readPDO2_[i]);
+		CANOpen_mappingPDO_uint16(&readPDO2_[i], &state_output_[i]);
+
+	}
+
+    sleep(1);
+	for (i = 0; i < dof_; i++) {
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0006, 100);
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x0007, 100);
+		CANOpen_writeOD_uint16(jnt_ids_[i], 0x6040, 0x00, 0x000F, 100);
+	}
+
+    CANOpen_NMT(CO_OP);
+}
+
 void ZltechHW::callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active){
 	e_stop_active_ = e_stop_active->data;
+}
+
+void ZltechHW::callback_activate_e_shutdown(const std_msgs::BoolConstPtr& e_shutdown_active){
+
+	int i;
+
+	if(e_shutdown_active_ != e_shutdown_active->data){
+
+		if(!e_shutdown_active->data) activate();
+		else CANOpen_NMT(CO_RESET);
+
+		e_shutdown_active_ = e_shutdown_active->data;
+
+	}
 }
 
 void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
 
 	int i;
+
+	if(e_shutdown_active_) return;
 
 	// Communicate
     CANOpen_sendSync();
@@ -152,6 +183,9 @@ void ZltechHW::read(const ros::Time& time, const ros::Duration& period){
 void ZltechHW::write(const ros::Time& time, const ros::Duration& period){
 
 	int i;
+
+	if(e_shutdown_active_) return;
+
 	for(i = 0; i < dof_; i++){
 		if (e_stop_active_)
 			speed_input_[i] = 0;

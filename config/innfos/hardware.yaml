@@ -1,3 +1,5 @@
 DOF : 6
 joint_names: ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
 joint_ids : [192, 193, 194, 195, 196, 197]
+max_accel : [0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+max_vel : [0.55, 0.55, 0.55, 0.55, 0.55, 0.55]

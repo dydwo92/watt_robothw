@@ -25,6 +25,9 @@ public :
 
 private :
 	void callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active);
+	void callback_activate_e_shutdown(const std_msgs::BoolConstPtr& e_shutdown_active);
+
+    void activate();
 
 private :
 
@@ -59,6 +62,8 @@ private :
     ros::Subscriber sub_e_stop_;
     bool e_stop_active_;
 
+	ros::Subscriber sub_e_shutdown_;
+	bool e_shutdown_active_;
 };
 
 #endif /* WATT_ROBOTHW_INCLUDE_ZLTECH_ZLTECH_HW_DRIVER_H_ */

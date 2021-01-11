@@ -1,4 +1,5 @@
-control_rate : 50
-innfos_can_device : "can0"
+control_rate : 50 
+innfos_can_device : "can1"
 zltech_can_device : "can0"
 estop_topic : "/activate_e_stop"
+eshutdown_topic : "/activate_e_shutdown"

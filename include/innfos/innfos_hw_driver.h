@@ -25,6 +25,7 @@ public :
 
 private :
 	void callback_activate_e_stop(const std_msgs::BoolConstPtr& e_stop_active);
+	void callback_activate_e_shutdown(const std_msgs::BoolConstPtr& e_shutdown_active);
 
 private :
 
@@ -35,8 +36,12 @@ private :
 
 	std::vector<struct _INNFOS_REPLY> innfos_reply_;
 
+    std::vector<double> max_vel_;
+    std::vector<double> max_accel_;
+
 	// Command variables
 	std::vector<double> position_cmd_;
+	std::vector<double> last_position_cmd_;
 	std::vector<float> position_cmd_float_;
 	std::vector<double> velocity_cmd_;
 	std::vector<double> effort_cmd_;
@@ -50,6 +55,9 @@ private :
 
 	ros::Subscriber sub_e_stop_;
 	bool e_stop_active_;
+
+	ros::Subscriber sub_e_shutdown_;
+	bool e_shutdown_active_;
 };
 
 #endif
