@@ -42,8 +42,9 @@ private :
     std::vector<int32_t> position_output_;
     std::vector<uint16_t> state_output_;
 
-    std::vector<double> pos_coeff_;
-    std::vector<double> vel_coeff_;
+    std::vector<double> pos_in_coeff_;
+    std::vector<double> vel_in_coeff_;
+    std::vector<double> vel_out_coeff_;
 
     hardware_interface::JointStateInterface jnt_state_interface_;
     hardware_interface::PositionJointInterface jnt_pos_interface_;

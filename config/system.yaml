@@ -1,4 +1,4 @@
 control_rate : 50
 innfos_can_device : "can0"
 zltech_can_device : "can0"
-estop_topic : "activate_e_stop"
+estop_topic : "/activate_e_stop"
